@@ -20,7 +20,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IndicatorPacketListener implements PacketListener {
+import com.github.retrooper.packetevents.event.PacketListenerAbstract;  public class IndicatorPacketListener extends PacketListenerAbstract { {
 
     // 1.21.x LivingEntity SynchedEntityData indices:
     // 9 = DATA_HEALTH_ID (Float)
