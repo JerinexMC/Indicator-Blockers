@@ -1,0 +1,19 @@
+name: IndicatorBlocker
+version: 1.0.0
+main: com.casualsmp.indicatorblocker.IndicatorBlockerPlugin
+api-version: '1.21'
+depend:
+  - packetevents
+description: Spoofs outgoing entity health, opponent item durability, and third-party potion effects to neutralize client-side indicator mods.
+commands:
+  indicatorblocker:
+    description: Reload IndicatorBlocker configuration
+    usage: /indicatorblocker reload
+    permission: indicatorblocker.admin
+permissions:
+  indicatorblocker.admin:
+    description: Allows reloading IndicatorBlocker
+    default: op
+  indicatorblocker.bypass:
+    description: Bypass packet spoofing and see real values
+    default: false

@@ -1,0 +1,27 @@
+# IndicatorBlocker Configuration (Paper 1.21.11 + PacketEvents)
+# Designed to neutralize client-side health, armor durability, and opponent potion status indicator mods
+# without affecting server-side damage, armor breaking, or a player's own HUD/effects.
+
+spoof-health:
+  enabled: true
+  # Applies to players only (recommended so bosses/mobs/iron golems don't look weirdly broken)
+  players-only: true
+  # Health value sent to other players while target is alive (20.0 = full 10 hearts)
+  spoofed-health: 20.0
+  # Spoof absorption (golden hearts) to 0.0 for other players
+  spoof-absorption: true
+
+spoof-equipment-durability:
+  enabled: true
+  # Strips durability damage from other players' held items and armor packets
+  # Visually keeps armor/weapons intact while hiding exact durability % from mods
+  strip-damage-component: true
+  # Optionally hide glint/enchantments on other players' gear (false keeps normal enchant glint)
+  hide-enchantments: false
+
+hide-other-player-potions:
+  enabled: true
+  # Blocks ENTITY_EFFECT and REMOVE_ENTITY_EFFECT packets when target != receiver
+  block-effect-packets: true
+  # Masks potion swirl particle color metadata on other players (set to 0 / none)
+  hide-potion-particles: true
