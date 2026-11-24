@@ -2,6 +2,7 @@
 package com.casualsmp.indicatorblocker;
 
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.component.ComponentTypes;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
@@ -13,6 +14,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerRemoveEntityEffect;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEquipment;
+
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -21,14 +23,12 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
 
     private final IndicatorBlockerPlugin plugin;
 
-    // Modern Minecraft LivingEntity metadata:
-    // 10 = Potion effect color
-    // 11 = Potion effect ambient flag
-
+    // Minecraft 1.21.11 LivingEntity metadata indexes.
     private static final int POTION_COLOR_INDEX = 10;
     private static final int POTION_AMBIENT_INDEX = 11;
 
     public IndicatorPacketListener(IndicatorBlockerPlugin plugin) {
+        super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
     }
 
@@ -39,16 +39,14 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
             return;
         }
 
+        // Players with bypass permission see everything normally.
         if (receiver.hasPermission("indicatorblocker.bypass")) {
             return;
         }
 
         int receiverId = receiver.getEntityId();
 
-        // ==========================================
-        // 1. HIDE OTHER PLAYERS' POTION EFFECT PACKETS
-        // ==========================================
-
+        // 1. Hide other players' potion effect packets.
         if (event.getPacketType() == PacketType.Play.Server.ENTITY_EFFECT) {
 
             if (!plugin.getConfig().getBoolean(
@@ -66,10 +64,7 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
             return;
         }
 
-        // ==========================================
-        // 2. HIDE POTION REMOVAL PACKETS
-        // ==========================================
-
+        // 2. Hide other players' potion effect removal packets.
         if (event.getPacketType() == PacketType.Play.Server.REMOVE_ENTITY_EFFECT) {
 
             if (!plugin.getConfig().getBoolean(
@@ -87,10 +82,7 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
             return;
         }
 
-        // ==========================================
-        // 3. HIDE POTION COLOR AND AMBIENT INDICATORS
-        // ==========================================
-
+        // 3. Hide other players' potion color and ambient metadata.
         if (event.getPacketType() == PacketType.Play.Server.ENTITY_METADATA) {
 
             if (!plugin.getConfig().getBoolean(
@@ -101,47 +93,44 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
             WrapperPlayServerEntityMetadata wrapper =
                     new WrapperPlayServerEntityMetadata(event);
 
-            // Never modify the receiver's own metadata.
+            // Do not modify the receiver's own metadata.
             if (wrapper.getEntityId() == receiverId) {
                 return;
             }
 
             List<EntityData<?>> metadata = wrapper.getEntityMetadata();
-
             boolean modified = false;
 
             for (int i = 0; i < metadata.size(); i++) {
 
                 EntityData<?> data = metadata.get(i);
 
-                // Potion color / swirl indicator
-                if (data.getIndex() == POTION_COLOR_INDEX) {
+                // Potion color.
+                if (data.getIndex() == POTION_COLOR_INDEX
+                        && data.getValue() instanceof Integer color
+                        && color != 0) {
 
-                    if (data.getValue() instanceof Integer color && color != 0) {
+                    metadata.set(i, new EntityData<>(
+                            POTION_COLOR_INDEX,
+                            EntityDataTypes.INT,
+                            0
+                    ));
 
-                        metadata.set(i, new EntityData<>(
-                                POTION_COLOR_INDEX,
-                                EntityDataTypes.INT,
-                                0
-                        ));
-
-                        modified = true;
-                    }
+                    modified = true;
                 }
 
-                // Potion ambient indicator
-                if (data.getIndex() == POTION_AMBIENT_INDEX) {
+                // Potion ambient flag.
+                if (data.getIndex() == POTION_AMBIENT_INDEX
+                        && data.getValue() instanceof Boolean ambient
+                        && ambient) {
 
-                    if (data.getValue() instanceof Boolean ambient && ambient) {
+                    metadata.set(i, new EntityData<>(
+                            POTION_AMBIENT_INDEX,
+                            EntityDataTypes.BOOLEAN,
+                            false
+                    ));
 
-                        metadata.set(i, new EntityData<>(
-                                POTION_AMBIENT_INDEX,
-                                EntityDataTypes.BOOLEAN,
-                                false
-                        ));
-
-                        modified = true;
-                    }
+                    modified = true;
                 }
             }
 
@@ -153,10 +142,7 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
             return;
         }
 
-        // ==========================================
-        // 4. HIDE OTHER PLAYERS' EQUIPMENT DURABILITY
-        // ==========================================
-
+        // 4. Make other players' armor appear undamaged.
         if (event.getPacketType() == PacketType.Play.Server.ENTITY_EQUIPMENT) {
 
             if (!plugin.getConfig().getBoolean(
@@ -167,13 +153,12 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
             WrapperPlayServerEntityEquipment wrapper =
                     new WrapperPlayServerEntityEquipment(event);
 
-            // Never modify the receiver's own equipment.
+            // Do not modify the receiver's own equipment.
             if (wrapper.getEntityId() == receiverId) {
                 return;
             }
 
             List<Equipment> equipment = wrapper.getEquipment();
-
             boolean modified = false;
 
             for (Equipment eq : equipment) {
@@ -187,9 +172,6 @@ public final class IndicatorPacketListener extends PacketListenerAbstract {
                 ItemStack copy = item.copy();
 
                 if (copy.hasComponent(ComponentTypes.DAMAGE)) {
-
-                    // Removing the damage component makes the item
-                    // appear undamaged to the receiving client.
                     copy.unsetComponent(ComponentTypes.DAMAGE);
 
                     eq.setItem(copy);
